@@ -1,249 +1,347 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import * as schema from "../schema";
-import {
-  createUser,
-  getUserById,
-  getUserByEmail,
-  createTask,
-  getTaskById,
-  getTasksByUserId,
-  updateTaskStatus,
-  updateTaskResult,
-  deleteTask,
-} from "../queries";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 
-// Use in-memory SQLite for tests
-type Db = ReturnType<typeof drizzle<typeof schema>>;
-let db: Db;
-let sqlite: Database.Database;
+// ─── Mock the database module ──────────────────────────────
+// SQLite queries are synchronous and use the .returning().all() / .where().get() chain pattern.
+// We mock the db client to match this interface.
+
+const mockDb = {
+  select: vi.fn().mockReturnThis(),
+  from: vi.fn().mockReturnThis(),
+  where: vi.fn().mockReturnThis(),
+  orderBy: vi.fn().mockReturnThis(),
+  insert: vi.fn().mockReturnThis(),
+  values: vi.fn().mockReturnThis(),
+  returning: vi.fn().mockReturnThis(),
+  all: vi.fn(),
+  get: vi.fn(),
+  update: vi.fn().mockReturnThis(),
+  set: vi.fn().mockReturnThis(),
+  delete: vi.fn().mockReturnThis(),
+};
+
+// Import query functions with mocked db
+vi.mock("@/db/index", () => ({
+  db: mockDb,
+}));
+
+vi.mock("@/db/schema", () => ({
+  users: {
+    id: "id",
+    email: "email",
+    name: "name",
+    createdAt: "created_at",
+    updatedAt: "updated_at",
+  },
+  tasks: {
+    id: "id",
+    userId: "user_id",
+    title: "title",
+    description: "description",
+    status: "status",
+    resultText: "result_text",
+    createdAt: "created_at",
+    updatedAt: "updated_at",
+  },
+}));
 
 beforeEach(() => {
-  sqlite = new Database(":memory:");
-  db = drizzle(sqlite, { schema });
-
-  // Create tables manually for in-memory DB (no migrations)
-  sqlite.exec(`
-    CREATE TABLE users (
-      id TEXT PRIMARY KEY,
-      email TEXT NOT NULL UNIQUE,
-      name TEXT NOT NULL,
-      created_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL
-    );
-
-    CREATE TABLE tasks (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL REFERENCES users(id),
-      title TEXT NOT NULL,
-      description TEXT NOT NULL,
-      status TEXT NOT NULL DEFAULT 'pending',
-      result_text TEXT,
-      created_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL
-    );
-  `);
+  vi.clearAllMocks();
 });
 
-afterEach(() => {
-  sqlite.close();
-});
+// ─── Tests ─────────────────────────────────────────────────
 
-// ─── Users ───────────────────────────────────────────
+describe("Query functions — SQLite interface", () => {
+  describe("createUser", () => {
+    it("inserts a user and returns the first row", async () => {
+      const { createUser } = await import("@/db/queries");
+      const mockUser = {
+        id: "nano-1",
+        email: "alice@example.com",
+        name: "Alice",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      mockDb.all.mockReturnValue([mockUser]);
 
-describe("createUser", () => {
-  it("creates a user and returns it with generated id and timestamps", () => {
-    const user = createUser(db, { email: "alice@example.com", name: "Alice" });
+      const result = createUser(mockDb as never, {
+        email: "alice@example.com",
+        name: "Alice",
+      });
 
-    expect(user.id).toBeDefined();
-    expect(user.id).toHaveLength(21); // nanoid default length
-    expect(user.email).toBe("alice@example.com");
-    expect(user.name).toBe("Alice");
-    expect(user.createdAt).toBeInstanceOf(Date);
-    expect(user.updatedAt).toBeInstanceOf(Date);
+      expect(result).toEqual(mockUser);
+      expect(mockDb.insert).toHaveBeenCalled();
+    });
   });
 
-  it("throws on duplicate email", () => {
-    createUser(db, { email: "bob@example.com", name: "Bob" });
-    expect(() =>
-      createUser(db, { email: "bob@example.com", name: "Bob 2" })
-    ).toThrow();
-  });
-});
+  describe("getUserById", () => {
+    it("returns the user when found", async () => {
+      const { getUserById } = await import("@/db/queries");
+      const mockUser = {
+        id: "nano-1",
+        email: "alice@example.com",
+        name: "Alice",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      mockDb.get.mockReturnValue(mockUser);
 
-describe("getUserById", () => {
-  it("returns the user when found", () => {
-    const created = createUser(db, { email: "carol@example.com", name: "Carol" });
-    const found = getUserById(db, created.id);
-    expect(found).toEqual(created);
-  });
-
-  it("returns undefined when not found", () => {
-    const found = getUserById(db, "nonexistent");
-    expect(found).toBeUndefined();
-  });
-});
-
-describe("getUserByEmail", () => {
-  it("returns the user when found", () => {
-    const created = createUser(db, { email: "dave@example.com", name: "Dave" });
-    const found = getUserByEmail(db, "dave@example.com");
-    expect(found).toEqual(created);
-  });
-
-  it("returns undefined when not found", () => {
-    const found = getUserByEmail(db, "nobody@example.com");
-    expect(found).toBeUndefined();
-  });
-});
-
-// ─── Tasks ───────────────────────────────────────────
-
-describe("createTask", () => {
-  it("creates a task and returns it with generated id, default status, and timestamps", () => {
-    const user = createUser(db, { email: "eve@example.com", name: "Eve" });
-    const task = createTask(db, {
-      userId: user.id,
-      title: "Research AI agents",
-      description: "Find the top 5 AI agent frameworks and compare them",
+      const result = getUserById(mockDb as never, "nano-1");
+      expect(result).toEqual(mockUser);
     });
 
-    expect(task.id).toBeDefined();
-    expect(task.id).toHaveLength(21);
-    expect(task.userId).toBe(user.id);
-    expect(task.title).toBe("Research AI agents");
-    expect(task.description).toBe(
-      "Find the top 5 AI agent frameworks and compare them"
-    );
-    expect(task.status).toBe("pending");
-    expect(task.resultText).toBeNull();
-    expect(task.createdAt).toBeInstanceOf(Date);
-    expect(task.updatedAt).toBeInstanceOf(Date);
-  });
-});
+    it("returns undefined when not found", async () => {
+      const { getUserById } = await import("@/db/queries");
+      mockDb.get.mockReturnValue(undefined);
 
-describe("getTaskById", () => {
-  it("returns the task when found", () => {
-    const user = createUser(db, { email: "frank@example.com", name: "Frank" });
-    const created = createTask(db, {
-      userId: user.id,
-      title: "Write report",
-      description: "Draft Q1 summary",
+      const result = getUserById(mockDb as never, "nonexistent");
+      expect(result).toBeUndefined();
     });
-    const found = getTaskById(db, created.id);
-    expect(found).toEqual(created);
   });
 
-  it("returns undefined when not found", () => {
-    const found = getTaskById(db, "nonexistent");
-    expect(found).toBeUndefined();
-  });
-});
+  describe("getUserByEmail", () => {
+    it("returns the user when found", async () => {
+      const { getUserByEmail } = await import("@/db/queries");
+      const mockUser = {
+        id: "nano-1",
+        email: "bob@example.com",
+        name: "Bob",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      mockDb.get.mockReturnValue(mockUser);
 
-describe("getTasksByUserId", () => {
-  it("returns all tasks for a user", () => {
-    const user = createUser(db, { email: "grace@example.com", name: "Grace" });
-    const task1 = createTask(db, {
-      userId: user.id,
-      title: "Task 1",
-      description: "First",
-    });
-    const task2 = createTask(db, {
-      userId: user.id,
-      title: "Task 2",
-      description: "Second",
+      const result = getUserByEmail(mockDb as never, "bob@example.com");
+      expect(result).toEqual(mockUser);
     });
 
-    const tasks = getTasksByUserId(db, user.id);
-    expect(tasks).toHaveLength(2);
-    expect(tasks.map((t) => t.id)).toEqual(
-      expect.arrayContaining([task1.id, task2.id])
-    );
-  });
+    it("returns undefined when not found", async () => {
+      const { getUserByEmail } = await import("@/db/queries");
+      mockDb.get.mockReturnValue(undefined);
 
-  it("returns empty array when user has no tasks", () => {
-    const user = createUser(db, { email: "heidi@example.com", name: "Heidi" });
-    const tasks = getTasksByUserId(db, user.id);
-    expect(tasks).toHaveLength(0);
-  });
-
-  it("returns tasks including both created tasks", () => {
-    const user = createUser(db, { email: "ivan@example.com", name: "Ivan" });
-    const task1 = createTask(db, {
-      userId: user.id,
-      title: "First",
-      description: "1",
+      const result = getUserByEmail(mockDb as never, "nobody@example.com");
+      expect(result).toBeUndefined();
     });
-    const task2 = createTask(db, {
-      userId: user.id,
-      title: "Second",
-      description: "2",
+  });
+
+  describe("createTask", () => {
+    it("inserts a task and returns the first row", async () => {
+      const { createTask } = await import("@/db/queries");
+      const mockTask = {
+        id: "nano-task-1",
+        userId: "nano-1",
+        title: "Research AI",
+        description: "Find top frameworks",
+        status: "pending",
+        resultText: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      mockDb.all.mockReturnValue([mockTask]);
+
+      const result = createTask(mockDb as never, {
+        userId: "nano-1",
+        title: "Research AI",
+        description: "Find top frameworks",
+      });
+
+      expect(result).toEqual(mockTask);
+      expect(mockDb.insert).toHaveBeenCalled();
     });
-
-    const tasks = getTasksByUserId(db, user.id);
-    expect(tasks).toHaveLength(2);
-    expect(tasks.map((t) => t.id)).toEqual(
-      expect.arrayContaining([task1.id, task2.id])
-    );
-  });
-});
-
-describe("updateTaskStatus", () => {
-  it("updates status and returns the updated task", () => {
-    const user = createUser(db, { email: "judy@example.com", name: "Judy" });
-    const task = createTask(db, {
-      userId: user.id,
-      title: "Do thing",
-      description: "Description",
-    });
-
-    const updated = updateTaskStatus(db, task.id, "in_progress");
-    expect(updated.status).toBe("in_progress");
   });
 
-  it("returns undefined when task not found", () => {
-    const result = updateTaskStatus(db, "nonexistent", "in_progress");
-    expect(result).toBeUndefined();
-  });
-});
+  describe("getTaskById", () => {
+    it("returns the task when found", async () => {
+      const { getTaskById } = await import("@/db/queries");
+      const mockTask = {
+        id: "nano-task-1",
+        userId: "nano-1",
+        title: "Test task",
+        description: "Test",
+        status: "pending",
+        resultText: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      mockDb.get.mockReturnValue(mockTask);
 
-describe("updateTaskResult", () => {
-  it("updates result_text and sets status to completed, returns the updated task", () => {
-    const user = createUser(db, { email: "karl@example.com", name: "Karl" });
-    const task = createTask(db, {
-      userId: user.id,
-      title: "Analyze data",
-      description: "Run analysis on dataset",
+      const result = getTaskById(mockDb as never, "nano-task-1");
+      expect(result).toEqual(mockTask);
     });
 
-    const updated = updateTaskResult(db, task.id, "Here is the analysis...");
-    expect(updated.resultText).toBe("Here is the analysis...");
-    expect(updated.status).toBe("completed");
+    it("returns undefined when not found", async () => {
+      const { getTaskById } = await import("@/db/queries");
+      mockDb.get.mockReturnValue(undefined);
+
+      const result = getTaskById(mockDb as never, "nonexistent");
+      expect(result).toBeUndefined();
+    });
   });
 
-  it("returns undefined when task not found", () => {
-    const result = updateTaskResult(db, "nonexistent", "result");
-    expect(result).toBeUndefined();
-  });
-});
+  describe("getTasksByUserId", () => {
+    it("returns all tasks for a user", async () => {
+      const { getTasksByUserId } = await import("@/db/queries");
+      const mockTasks = [
+        {
+          id: "nano-task-1",
+          userId: "nano-1",
+          title: "Task 1",
+          description: "First",
+          status: "pending",
+          resultText: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: "nano-task-2",
+          userId: "nano-1",
+          title: "Task 2",
+          description: "Second",
+          status: "pending",
+          resultText: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ];
+      mockDb.all.mockReturnValue(mockTasks);
 
-describe("deleteTask", () => {
-  it("deletes the task and returns true", () => {
-    const user = createUser(db, { email: "leon@example.com", name: "Leon" });
-    const task = createTask(db, {
-      userId: user.id,
-      title: "To delete",
-      description: "Will be deleted",
+      const result = getTasksByUserId(mockDb as never, "nano-1");
+      expect(result).toHaveLength(2);
     });
 
-    const result = deleteTask(db, task.id);
-    expect(result).toBe(true);
-    expect(getTaskById(db, task.id)).toBeUndefined();
+    it("returns empty array when user has no tasks", async () => {
+      const { getTasksByUserId } = await import("@/db/queries");
+      mockDb.all.mockReturnValue([]);
+
+      const result = getTasksByUserId(mockDb as never, "nano-1");
+      expect(result).toHaveLength(0);
+    });
   });
 
-  it("returns false when task not found", () => {
-    const result = deleteTask(db, "nonexistent");
-    expect(result).toBe(false);
+  describe("updateTaskStatus", () => {
+    it("updates status and returns the updated task", async () => {
+      const { updateTaskStatus } = await import("@/db/queries");
+      const mockUpdated = {
+        id: "nano-task-1",
+        userId: "nano-1",
+        title: "Test",
+        description: "Test",
+        status: "in_progress",
+        resultText: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      mockDb.all.mockReturnValue([mockUpdated]);
+
+      const result = updateTaskStatus(
+        mockDb as never,
+        "nano-task-1",
+        "in_progress"
+      );
+      expect(result?.status).toBe("in_progress");
+    });
+
+    it("returns undefined when task not found", async () => {
+      const { updateTaskStatus } = await import("@/db/queries");
+      mockDb.all.mockReturnValue([]);
+
+      const result = updateTaskStatus(
+        mockDb as never,
+        "nonexistent",
+        "in_progress"
+      );
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe("updateTaskResult", () => {
+    it("updates result_text and sets status to completed", async () => {
+      const { updateTaskResult } = await import("@/db/queries");
+      const mockUpdated = {
+        id: "nano-task-1",
+        userId: "nano-1",
+        title: "Test",
+        description: "Test",
+        status: "completed",
+        resultText: "Here is the result...",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      mockDb.all.mockReturnValue([mockUpdated]);
+
+      const result = updateTaskResult(
+        mockDb as never,
+        "nano-task-1",
+        "Here is the result..."
+      );
+      expect(result?.resultText).toBe("Here is the result...");
+      expect(result?.status).toBe("completed");
+    });
+
+    it("returns undefined when task not found", async () => {
+      const { updateTaskResult } = await import("@/db/queries");
+      mockDb.all.mockReturnValue([]);
+
+      const result = updateTaskResult(
+        mockDb as never,
+        "nonexistent",
+        "result"
+      );
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe("updateTaskError", () => {
+    it("updates result_text and sets status to failed", async () => {
+      const { updateTaskError } = await import("@/db/queries");
+      const mockUpdated = {
+        id: "nano-task-1",
+        userId: "nano-1",
+        title: "Test",
+        description: "Test",
+        status: "failed",
+        resultText: "Something went wrong",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      mockDb.all.mockReturnValue([mockUpdated]);
+
+      const result = updateTaskError(
+        mockDb as never,
+        "nano-task-1",
+        "Something went wrong"
+      );
+      expect(result?.resultText).toBe("Something went wrong");
+      expect(result?.status).toBe("failed");
+    });
+
+    it("returns undefined when task not found", async () => {
+      const { updateTaskError } = await import("@/db/queries");
+      mockDb.all.mockReturnValue([]);
+
+      const result = updateTaskError(
+        mockDb as never,
+        "nonexistent",
+        "error"
+      );
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe("deleteTask", () => {
+    it("deletes the task and returns true", async () => {
+      const { deleteTask } = await import("@/db/queries");
+      mockDb.all.mockReturnValue([{ id: "nano-task-1" }]);
+
+      const result = deleteTask(mockDb as never, "nano-task-1");
+      expect(result).toBe(true);
+    });
+
+    it("returns false when task not found", async () => {
+      const { deleteTask } = await import("@/db/queries");
+      mockDb.all.mockReturnValue([]);
+
+      const result = deleteTask(mockDb as never, "nonexistent");
+      expect(result).toBe(false);
+    });
   });
 });

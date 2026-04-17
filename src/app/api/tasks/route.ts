@@ -33,12 +33,12 @@ export async function GET(request: NextRequest) {
       return badRequest("userEmail query parameter is required");
     }
 
-    const user = getUserByEmail(db, userEmail);
+    const user = await getUserByEmail(db, userEmail);
     if (!user) {
       return withCors(NextResponse.json({ tasks: [] }));
     }
 
-    const tasks = getTasksByUserId(db, user.id);
+    const tasks = await getTasksByUserId(db, user.id);
     return withCors(NextResponse.json({ tasks }));
   } catch (error) {
     console.error("[GET /api/tasks] Error:", error);
@@ -67,14 +67,14 @@ export async function POST(request: NextRequest) {
     const { title, description, userEmail, userName } = data as Record<string, string>;
 
     // Find or create user (MVP: auto-provision users by email)
-    let user = getUserByEmail(db, userEmail);
+    let user = await getUserByEmail(db, userEmail);
     if (!user) {
       const name = userName || userEmail.split("@")[0];
-      user = createUser(db, { email: userEmail, name });
+      user = await createUser(db, { email: userEmail, name });
     }
 
     // Create task
-    const task = createTask(db, {
+    const task = await createTask(db, {
       userId: user.id,
       title: title.trim(),
       description: description.trim(),

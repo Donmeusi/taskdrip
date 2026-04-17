@@ -2,13 +2,14 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import Database from "better-sqlite3";
 import * as schema from "./schema";
 import { createUser, createTask, updateTaskStatus, updateTaskResult } from "./queries";
+import path from "path";
 
-const DB_PATH = process.env.DATABASE_URL || "./data/app.db";
+const DB_PATH = process.env.DATABASE_URL || path.join(process.cwd(), "data", "app.db");
 
 const sqlite = new Database(DB_PATH);
 const db = drizzle(sqlite, { schema });
 
-async function seed() {
+function seed() {
   console.log("Seeding database...");
 
   // Create demo users
@@ -38,19 +39,17 @@ async function seed() {
 
   const task2 = createTask(db, {
     userId: alice.id,
-    title: "Summarize Q1 report",
-    description: "Read through the Q1 earnings report and provide a 3-bullet summary.",
+    title: "Summarize Q1 marketing report",
+    description:
+      "Read the Q1 marketing report and provide a 3-paragraph executive summary with key metrics.",
   });
   console.log(`Created task: ${task2.title}`);
 
-  updateTaskStatus(db, task2.id, "in_progress");
-  console.log(`Task in progress: ${task2.title}`);
-
   const task3 = createTask(db, {
     userId: alice.id,
-    title: "Draft blog post about AI agents",
+    title: "Draft partnership outreach email",
     description:
-      "Write a 500-word blog post about how AI agents are changing knowledge work.",
+      "Write a professional outreach email to potential technology partners, highlighting collaboration opportunities with our AI task platform.",
   });
   console.log(`Created task: ${task3.title}`);
 
@@ -59,36 +58,24 @@ async function seed() {
     userId: bob.id,
     title: "Analyze competitor pricing",
     description:
-      "Research our top 3 competitors and summarize their pricing models.",
+      "Research pricing models of our top 5 competitors and create a comparison table.",
   });
-  updateTaskStatus(db, task4.id, "in_progress");
-  updateTaskResult(
-    db,
-    task4.id,
-    "## Competitor Pricing Analysis\n\n1. **Competitor A** — Freemium, $15/mo Pro\n2. **Competitor B** — Usage-based, $0.10/task\n3. **Competitor C** — $29/mo flat rate\n\nKey insight: Most competitors charge per-seat. Usage-based pricing is underrepresented."
-  );
-  console.log(`Completed task: ${task4.title}`);
+  console.log(`Created task: ${task4.title}`);
 
   const task5 = createTask(db, {
     userId: bob.id,
-    title: "Prepare meeting notes template",
+    title: "Write blog post about AI automation",
     description:
-      "Create a reusable meeting notes template with action items, decisions, and follow-ups.",
+      "Write a 500-word blog post about how AI automation is changing personal productivity, aimed at a general audience.",
   });
   console.log(`Created task: ${task5.title}`);
 
-  const task6 = createTask(db, {
-    userId: bob.id,
-    title: "Review pull request #42",
-    description: "Review the API endpoint PR and provide feedback.",
-  });
-  updateTaskStatus(db, task6.id, "failed");
-  console.log(`Task failed: ${task6.title}`);
+  // Mark task5 as in_progress (simulate partial processing)
+  updateTaskStatus(db, task5.id, "in_progress");
+  console.log(`Processing task: ${task5.title}`);
 
-  console.log("\nSeed complete!");
-  console.log(`Users: 2, Tasks: 6 (2 completed, 1 in_progress, 2 pending, 1 failed)`);
-
-  sqlite.close();
+  console.log("\nSeeding complete!");
+  console.log(`Created 2 users and 5 tasks`);
 }
 
 seed();

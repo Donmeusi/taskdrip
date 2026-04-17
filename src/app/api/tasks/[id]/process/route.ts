@@ -39,7 +39,7 @@ export async function POST(
       return tooManyRequests(30);
     }
 
-    const task = getTaskById(db, id);
+    const task = await getTaskById(db, id);
 
     if (!task) {
       return notFound("Task not found");
@@ -61,16 +61,16 @@ export async function POST(
     }
 
     // Mark as in_progress
-    updateTaskStatus(db, id, "in_progress");
+    await updateTaskStatus(db, id, "in_progress");
 
     // Call OpenAI to process the task
     const result = await processTaskWithAI(task.title, task.description);
 
     if (result.success && result.resultText) {
-      const updated = updateTaskResult(db, id, result.resultText);
+      const updated = await updateTaskResult(db, id, result.resultText);
       return withCors(NextResponse.json(updated));
     } else {
-      const updated = updateTaskError(
+      const updated = await updateTaskError(
         db,
         id,
         result.error || "AI processing failed with unknown error"
@@ -84,6 +84,6 @@ export async function POST(
     }
   } catch (error) {
     console.error("[POST /api/tasks/[id]/process] Error:", error);
-    return internalError();
+    return internalError("Failed to process task");
   }
 }

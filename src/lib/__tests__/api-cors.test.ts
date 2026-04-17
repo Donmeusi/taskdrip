@@ -3,6 +3,10 @@ import {
   methodNotAllowed,
   handleCorsPreflightRequest,
   withCors,
+  badRequest,
+  notFound,
+  internalError,
+  tooManyRequests,
 } from "@/lib/api";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -15,6 +19,14 @@ describe("API helpers — CORS and method handling", () => {
       expect(response.status).toBe(405);
       // The Allow header is set
       expect(response.headers.get("Allow")).toBe("GET, POST");
+    });
+
+    it("includes CORS headers on 405 responses", () => {
+      const response = methodNotAllowed(["GET", "POST"]);
+      expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
+      expect(response.headers.get("Access-Control-Allow-Methods")).toBe(
+        "GET, POST, DELETE, OPTIONS"
+      );
     });
   });
 
@@ -62,6 +74,35 @@ describe("API helpers — CORS and method handling", () => {
       const original = NextResponse.json({ error: "not found" }, { status: 404 });
       const response = withCors(original);
       expect(response.status).toBe(404);
+    });
+  });
+
+  // ── CORS on error responses ──
+
+  describe("error responses include CORS headers", () => {
+    it("badRequest includes CORS headers", () => {
+      const response = badRequest("Missing field");
+      expect(response.status).toBe(400);
+      expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    });
+
+    it("notFound includes CORS headers", () => {
+      const response = notFound("Task not found");
+      expect(response.status).toBe(404);
+      expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    });
+
+    it("internalError includes CORS headers", () => {
+      const response = internalError("Database failed");
+      expect(response.status).toBe(500);
+      expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    });
+
+    it("tooManyRequests includes CORS headers", () => {
+      const response = tooManyRequests(30);
+      expect(response.status).toBe(429);
+      expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
+      expect(response.headers.get("Retry-After")).toBe("30");
     });
   });
 });

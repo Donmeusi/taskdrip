@@ -98,7 +98,7 @@ The app runs on `http://localhost:3000`.
 
 | File | Purpose |
 |------|---------|
-| `next.config.mjs` | Next.js config — includes `serverExternalPackages: ["better-sqlite3"]` to handle native C addon on Vercel |
+| `next.config.mjs` | Next.js config — minimal, no serverExternalPackages needed (postgres.js is pure JS) |
 | `vercel.json` | Vercel-specific settings: framework declaration, function maxDuration for AI endpoint, API cache headers |
 | `.env.example` | Template for environment variables |
 | `.env.local` | Local environment variables (gitignored) |

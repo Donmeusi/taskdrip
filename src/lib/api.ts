@@ -30,7 +30,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Response helpers
 // ──────────────────────────────────────────────
 
-/** Return a JSON error response with the given status code */
+/** Return a JSON error response with the given status code (includes CORS headers) */
 export function errorResponse(
   message: string,
   status: number,
@@ -40,7 +40,12 @@ export function errorResponse(
   if (details) {
     body.details = details;
   }
-  return NextResponse.json(body, { status });
+  const response = NextResponse.json(body, { status });
+  // Apply CORS headers so cross-origin API consumers get error responses too
+  for (const [key, value] of Object.entries(CORS_HEADERS)) {
+    response.headers.set(key, value);
+  }
+  return response;
 }
 
 /** Return a 400 Bad Request */
@@ -53,13 +58,13 @@ export function notFound(message = "Resource not found") {
   return errorResponse(message, 404);
 }
 
-/** Return a 405 Method Not Allowed */
+/** Return a 405 Method Not Allowed (includes CORS headers) */
 export function methodNotAllowed(allowed: string[]) {
   return NextResponse.json(
     { error: "Method not allowed", allowed },
     {
       status: 405,
-      headers: { Allow: allowed.join(", ") },
+      headers: { Allow: allowed.join(", "), ...CORS_HEADERS },
     }
   );
 }
@@ -69,13 +74,13 @@ export function unprocessableEntity(message: string) {
   return errorResponse(message, 422);
 }
 
-/** Return a 429 Too Many Requests */
+/** Return a 429 Too Many Requests (includes CORS headers) */
 export function tooManyRequests(retryAfterSeconds = 60) {
   return NextResponse.json(
     { error: "Too many requests. Please try again later." },
     {
       status: 429,
-      headers: { "Retry-After": String(retryAfterSeconds) },
+      headers: { "Retry-After": String(retryAfterSeconds), ...CORS_HEADERS },
     }
   );
 }

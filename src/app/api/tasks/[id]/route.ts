@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, getTaskById, deleteTask } from "@/db";
-import { notFound, internalError, badRequest, methodNotAllowed, handleCorsPreflightRequest, withCors } from "@/lib/api";
+import {
+  notFound,
+  internalError,
+  badRequest,
+  tooManyRequests,
+  isRateLimited,
+  methodNotAllowed,
+  handleCorsPreflightRequest,
+  withCors,
+} from "@/lib/api";
 
 export async function OPTIONS(request: NextRequest) {
   const preflight = handleCorsPreflightRequest(request);
@@ -20,7 +29,7 @@ export async function GET(
       return badRequest("Invalid task ID");
     }
 
-    const task = getTaskById(db, id);
+    const task = await getTaskById(db, id);
 
     if (!task) {
       return notFound("Task not found");
@@ -29,30 +38,36 @@ export async function GET(
     return withCors(NextResponse.json(task));
   } catch (error) {
     console.error("[GET /api/tasks/[id]] Error:", error);
-    return internalError();
+    return internalError("Failed to get task");
   }
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Rate limiting check (placeholder — no-op for MVP)
+    const clientIdentifier = request.headers.get("x-forwarded-for") || "unknown";
+    if (await isRateLimited(`tasks:delete:${clientIdentifier}`)) {
+      return tooManyRequests();
+    }
+
     const { id } = await params;
 
     if (!id || typeof id !== "string" || id.trim().length === 0) {
       return badRequest("Invalid task ID");
     }
 
-    const task = getTaskById(db, id);
+    const task = await getTaskById(db, id);
     if (!task) {
       return notFound("Task not found");
     }
 
-    deleteTask(db, id);
+    await deleteTask(db, id);
     return withCors(NextResponse.json({ message: "Task deleted" }));
   } catch (error) {
     console.error("[DELETE /api/tasks/[id]] Error:", error);
-    return internalError();
+    return internalError("Failed to delete task");
   }
 }
