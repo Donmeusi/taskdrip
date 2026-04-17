@@ -206,6 +206,7 @@ export function validateWaitlistSignup(body: unknown): ValidationResult {
  *   const { success } = await ratelimit.limit(identifier);
  *   return !success;
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function isRateLimited(_identifier: string): Promise<boolean> {
   // TODO: Wire to Vercel KV + @upstash/ratelimit post-MVP
   return false;
@@ -218,7 +219,7 @@ export async function isRateLimited(_identifier: string): Promise<boolean> {
 /** CORS headers for API responses. Expand origins post-MVP as needed. */
 const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
   "Access-Control-Max-Age": "86400",
 };

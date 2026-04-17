@@ -5,7 +5,7 @@ import { notFound, internalError, badRequest, methodNotAllowed, handleCorsPrefli
 export async function OPTIONS(request: NextRequest) {
   const preflight = handleCorsPreflightRequest(request);
   if (preflight) return preflight;
-  return methodNotAllowed(["GET"]);
+  return methodNotAllowed(["GET", "DELETE"]);
 }
 
 export async function GET(

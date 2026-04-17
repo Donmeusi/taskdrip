@@ -30,7 +30,7 @@ describe("API helpers — CORS and method handling", () => {
       expect(response!.status).toBe(204);
       expect(response!.headers.get("Access-Control-Allow-Origin")).toBe("*");
       expect(response!.headers.get("Access-Control-Allow-Methods")).toBe(
-        "GET, POST, OPTIONS"
+        "GET, POST, DELETE, OPTIONS"
       );
       expect(response!.headers.get("Access-Control-Allow-Headers")).toBe(
         "Content-Type, Authorization"
@@ -54,7 +54,7 @@ describe("API helpers — CORS and method handling", () => {
       const response = withCors(original);
       expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
       expect(response.headers.get("Access-Control-Allow-Methods")).toBe(
-        "GET, POST, OPTIONS"
+        "GET, POST, DELETE, OPTIONS"
       );
     });
 

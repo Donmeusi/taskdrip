@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 
 describe("demo-mode", () => {
   const originalKey = process.env.OPENAI_API_KEY;
