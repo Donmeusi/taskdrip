@@ -13,7 +13,7 @@ Click the button above to deploy. You'll need to:
 2. Set the `OPENAI_API_KEY` environment variable when prompted
 3. Click Deploy
 
-> **Note:** SQLite data is ephemeral on Vercel. For persistent storage, see [DEPLOY.md](./docs/DEPLOY.md#migration-roadmap-post-mvp) for Postgres migration instructions.
+> **Note:** Without `OPENAI_API_KEY`, the app runs in demo mode (mock AI responses). Set `DEMO_MODE=false` to force live OpenAI. SQLite data is ephemeral on Vercel — see [DEPLOY.md](./docs/DEPLOY.md#migration-roadmap-post-mvp) for Postgres migration.
 
 ## Quick Start
 

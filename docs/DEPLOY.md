@@ -49,9 +49,12 @@ In the Vercel project settings (Settings > Environment Variables), add:
 
 | Variable | Value | Environments |
 |----------|-------|-------------|
-| `OPENAI_API_KEY` | `sk-your-openai-key` | Production, Preview, Development |
+| `OPENAI_API_KEY` | `sk-you...-key` | Production, Preview, Development |
+| `DEMO_MODE` | `false` | Production (optional) |
 
-**Important**: Do NOT set `DATABASE_URL`. The SQLite path is auto-configured and would be ephemeral on Vercel anyway (see [Limitations](#limitations) below).
+**Important**: 
+- Do NOT set `DATABASE_URL`. The SQLite path is auto-configured and would be ephemeral on Vercel anyway (see [Limitations](#limitations) below).
+- If deploying without an OpenAI API key, the app runs in **demo mode** automatically — tasks use mock AI responses. Set `DEMO_MODE=false` to force the real OpenAI path (required for AI processing to work).
 
 ### 4. Deploy
 
@@ -70,6 +73,7 @@ Visit the deployed URL and test these endpoints:
 | `/` | Landing page (TaskDrip marketing) |
 | `/app` | Task management UI |
 | `/api/health` | `{ "status": "ok" }` |
+| `/api/config` | `{ "demoMode": true/false }` |
 | `/app/tasks` | Task list (empty initially) |
 
 ---
