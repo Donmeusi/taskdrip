@@ -7,7 +7,16 @@ import {
   safeParseJson,
   isRateLimited,
   tooManyRequests,
+  methodNotAllowed,
+  handleCorsPreflightRequest,
+  withCors,
 } from "@/lib/api";
+
+export async function OPTIONS(request: NextRequest) {
+  const preflight = handleCorsPreflightRequest(request);
+  if (preflight) return preflight;
+  return methodNotAllowed(["GET", "POST"]);
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -26,11 +35,11 @@ export async function GET(request: NextRequest) {
 
     const user = getUserByEmail(db, userEmail);
     if (!user) {
-      return NextResponse.json({ tasks: [] });
+      return withCors(NextResponse.json({ tasks: [] }));
     }
 
     const tasks = getTasksByUserId(db, user.id);
-    return NextResponse.json({ tasks });
+    return withCors(NextResponse.json({ tasks }));
   } catch (error) {
     console.error("[GET /api/tasks] Error:", error);
     return internalError("Failed to list tasks");
@@ -71,7 +80,7 @@ export async function POST(request: NextRequest) {
       description: description.trim(),
     });
 
-    return NextResponse.json({ task }, { status: 201 });
+    return withCors(NextResponse.json({ task }, { status: 201 }));
   } catch (error) {
     console.error("[POST /api/tasks] Error:", error);
     return internalError("Failed to create task");

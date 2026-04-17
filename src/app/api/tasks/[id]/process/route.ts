@@ -1,10 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, getTaskById, updateTaskStatus, updateTaskResult, updateTaskError } from "@/db";
 import { processTaskWithAI } from "@/lib/openai";
-import { badRequest, notFound, internalError, tooManyRequests, isRateLimited } from "@/lib/api";
+import {
+  badRequest,
+  notFound,
+  internalError,
+  tooManyRequests,
+  isRateLimited,
+  methodNotAllowed,
+  handleCorsPreflightRequest,
+  withCors,
+} from "@/lib/api";
 
 // Extend max duration for OpenAI API calls on Vercel (default is 10s on Hobby)
 export const maxDuration = 30;
+
+export async function OPTIONS(request: NextRequest) {
+  const preflight = handleCorsPreflightRequest(request);
+  if (preflight) return preflight;
+  return methodNotAllowed(["POST"]);
+}
 
 export async function POST(
   request: NextRequest,
@@ -32,15 +47,17 @@ export async function POST(
 
     // Prevent re-processing of completed tasks
     if (task.status === "completed") {
-      return NextResponse.json(
-        { error: "Task already completed. Create a new task instead.", task },
-        { status: 409 }
+      return withCors(
+        NextResponse.json(
+          { error: "Task already completed. Create a new task instead.", task },
+          { status: 409 }
+        )
       );
     }
 
     // If already in_progress, return current state (idempotent)
     if (task.status === "in_progress") {
-      return NextResponse.json(task);
+      return withCors(NextResponse.json(task));
     }
 
     // Mark as in_progress
@@ -51,16 +68,18 @@ export async function POST(
 
     if (result.success && result.resultText) {
       const updated = updateTaskResult(db, id, result.resultText);
-      return NextResponse.json(updated);
+      return withCors(NextResponse.json(updated));
     } else {
       const updated = updateTaskError(
         db,
         id,
         result.error || "AI processing failed with unknown error"
       );
-      return NextResponse.json(
-        { error: result.error, task: updated },
-        { status: 422 }
+      return withCors(
+        NextResponse.json(
+          { error: result.error, task: updated },
+          { status: 422 }
+        )
       );
     }
   } catch (error) {

@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { isDemoMode, processTaskWithDemoAI } from "./demo-mode";
 
 const SYSTEM_PROMPT = `You are TaskDrip AI, a research and task-completion agent. Your job is to complete tasks that users delegate to you.
 
@@ -36,6 +37,13 @@ export async function processTaskWithAI(
   title: string,
   description: string
 ): Promise<ProcessTaskResult> {
+  // ── Demo mode fallback ──
+  // When no OpenAI API key is configured, use mock responses so the
+  // full task lifecycle can be demonstrated without external dependencies.
+  if (isDemoMode()) {
+    return processTaskWithDemoAI(title, description);
+  }
+
   try {
     const client = getOpenAIClient();
 

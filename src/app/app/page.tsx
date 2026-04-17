@@ -84,6 +84,7 @@ export default function TaskDripApp() {
   const [formTitle, setFormTitle] = useState("");
   const [formDesc, setFormDesc] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [demoMode, setDemoMode] = useState(false);
 
   // For task detail polling
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -142,6 +143,15 @@ export default function TaskDripApp() {
   useEffect(() => {
     fetchTasks();
   }, [fetchTasks]);
+
+  // ─── Check demo mode ───────────────────────────
+
+  useEffect(() => {
+    fetch("/api/config")
+      .then((r) => r.json())
+      .then((data) => setDemoMode(data.demoMode === true))
+      .catch(() => {});
+  }, []);
 
   // ─── Auto-refresh list every 10s ────────────────
 
@@ -243,6 +253,18 @@ export default function TaskDripApp() {
 
       {/* Main content */}
       <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
+        {demoMode && (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 flex items-center gap-2">
+            <span className="text-base">🧪</span>
+            <span>
+              <strong>Demo Mode</strong> — AI responses are simulated. Set the{" "}
+              <code className="rounded bg-amber-100 px-1 py-0.5 text-xs font-mono">
+                OPENAI_API_KEY
+              </code>{" "}
+              env var for real AI-powered results.
+            </span>
+          </div>
+        )}
         {error && (
           <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}

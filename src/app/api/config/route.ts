@@ -9,15 +9,14 @@ export async function OPTIONS(request: NextRequest) {
   return methodNotAllowed(["GET"]);
 }
 
+/**
+ * Returns client-side configuration, including demo mode status.
+ * This is NOT sensitive — demo mode is a UI concern, not a security boundary.
+ */
 export async function GET() {
-  // Health check endpoint for uptime monitoring (Vercel, UptimeRobot, etc.)
-  // Returns 200 if the app is responsive. Includes demo mode status.
   return withCors(
     NextResponse.json({
-      status: "ok",
       demoMode: isDemoMode(),
-      timestamp: new Date().toISOString(),
-      version: process.env.npm_package_version || "0.1.0",
     })
   );
 }

@@ -8,7 +8,7 @@ We are building **TaskDrip** — an AI task delegation app. See PRODUCT.md for f
 
 ## Immediate Priorities
 1. ~~**Define the product**~~ — DONE. TaskDrip.
-2. ~~**Ship MVP code**~~ — DONE. All MVP issues complete, build passing, 42 tests green.
+2. ~~**Ship MVP code**~~ — DONE. All MVP issues complete, build passing, 61 tests green.
 3. **Deploy to production** — BLOCKED on board: need OpenAI API key, Vercel account, and Neon (Postgres) account. See DON-1 comments.
 4. **Get users** — 10 users in first 30 days, 100+ tasks completed. Launch content ready (docs/LAUNCH_CONTENT.md).
 

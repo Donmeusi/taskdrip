@@ -117,12 +117,37 @@ describe("Task API — data layer (no HTTP)", () => {
   });
 });
 
-describe("OpenAI client — error handling", () => {
-  it("processTaskWithAI returns error when API key is not configured", async () => {
-    // Import dynamically to test with missing API key
+describe("OpenAI client — demo mode", () => {
+  it("processTaskWithAI falls back to demo mode when API key is not configured", async () => {
     vi.resetModules();
-    const originalEnv = process.env.OPENAI_API_KEY;
+    const originalKey = process.env.OPENAI_API_KEY;
+    const originalDemo = process.env.DEMO_MODE;
     delete process.env.OPENAI_API_KEY;
+    // Default behavior: no key → demo mode
+    delete process.env.DEMO_MODE;
+
+    const { processTaskWithAI } = await import("@/lib/openai");
+    const result = await processTaskWithAI("Research AI", "Find top AI frameworks");
+
+    // In demo mode, the function succeeds with mock output
+    expect(result.success).toBe(true);
+    expect(result.resultText).toBeDefined();
+    expect(result.resultText).toContain("Research AI");
+
+    // Restore
+    if (originalKey) process.env.OPENAI_API_KEY = originalKey;
+    else delete process.env.OPENAI_API_KEY;
+    if (originalDemo) process.env.DEMO_MODE = originalDemo;
+    else delete process.env.DEMO_MODE;
+  });
+
+  it("processTaskWithAI returns error when API key is not configured and demo mode is off", async () => {
+    vi.resetModules();
+    const originalKey = process.env.OPENAI_API_KEY;
+    const originalDemo = process.env.DEMO_MODE;
+    delete process.env.OPENAI_API_KEY;
+    // Explicitly disable demo mode so the error path is hit
+    process.env.DEMO_MODE = "false";
 
     const { processTaskWithAI } = await import("@/lib/openai");
     const result = await processTaskWithAI("Test", "Test description");
@@ -131,6 +156,9 @@ describe("OpenAI client — error handling", () => {
     expect(result.error).toContain("OPENAI_API_KEY");
 
     // Restore
-    if (originalEnv) process.env.OPENAI_API_KEY = originalEnv;
+    if (originalKey) process.env.OPENAI_API_KEY = originalKey;
+    else delete process.env.OPENAI_API_KEY;
+    if (originalDemo) process.env.DEMO_MODE = originalDemo;
+    else delete process.env.DEMO_MODE;
   });
 });

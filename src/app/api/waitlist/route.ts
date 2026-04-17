@@ -6,6 +6,9 @@ import {
   isRateLimited,
   validateWaitlistSignup,
   safeParseJson,
+  methodNotAllowed,
+  handleCorsPreflightRequest,
+  withCors,
 } from "@/lib/api";
 
 // Simple waitlist storage — uses in-memory array.
@@ -13,6 +16,12 @@ import {
 
 // In-memory store (ephemeral on Vercel serverless)
 const waitlist: string[] = [];
+
+export async function OPTIONS(request: NextRequest) {
+  const preflight = handleCorsPreflightRequest(request);
+  if (preflight) return preflight;
+  return methodNotAllowed(["GET", "POST"]);
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,22 +48,26 @@ export async function POST(request: NextRequest) {
 
     // Check for duplicates (in-memory)
     if (waitlist.includes(normalizedEmail)) {
-      return NextResponse.json(
-        { message: "Already on the waitlist!" },
-        { status: 200 }
+      return withCors(
+        NextResponse.json(
+          { message: "Already on the waitlist!" },
+          { status: 200 }
+        )
       );
     }
 
     // Store (TODO: persist to database via Drizzle)
     waitlist.push(normalizedEmail);
 
-    console.log(
+    console.warn(
       `[Waitlist] New signup: ${normalizedEmail} (total: ${waitlist.length})`
     );
 
-    return NextResponse.json(
-      { message: "Added to waitlist", position: waitlist.length },
-      { status: 201 }
+    return withCors(
+      NextResponse.json(
+        { message: "Added to waitlist", position: waitlist.length },
+        { status: 201 }
+      )
     );
   } catch (error) {
     console.error("[POST /api/waitlist] Error:", error);
@@ -63,9 +76,11 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
-  // Admin endpoint — TODO: add authentication post-MVP
-  return NextResponse.json({
-    count: waitlist.length,
-    emails: waitlist,
-  });
+  // Admin endpoint — returns count only (emails hidden for privacy).
+  // TODO: Add authentication post-MVP; full email list requires admin auth.
+  return withCors(
+    NextResponse.json({
+      count: waitlist.length,
+    })
+  );
 }
