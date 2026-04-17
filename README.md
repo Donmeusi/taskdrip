@@ -6,7 +6,7 @@ AI-powered task delegation app by Donmeusi Inc. Describe tasks in plain English,
 
 ## Deploy to Vercel
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FDonmeusi%2Ftaskdrip&env=OPENAI_API_KEY&envDescription=OpenAI%20API%20key%20for%20AI%20task%20processing&project-name=taskdrip)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new?repository-url=https%3A%2F%2Fgithub.com%2FDonmeusi%2Ftaskdrip&env=OPENAI_API_KEY&envDescription=OpenAI%20API%20key%20required%20for%20AI%20task%20processing&project-name=taskdrip)
 
 Click the button above to deploy. You'll need to:
 1. Sign in to Vercel (free tier works)
