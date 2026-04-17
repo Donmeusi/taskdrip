@@ -94,8 +94,8 @@ The app runs on `http://localhost:3000`.
 
 | File | Purpose |
 |------|---------|
-| `next.config.mjs` | Next.js config — minimal, Vercel-compatible |
-| `vercel.json` | Vercel-specific settings (framework declaration) |
+| `next.config.mjs` | Next.js config — includes `serverExternalPackages: ["better-sqlite3"]` to handle native C addon on Vercel |
+| `vercel.json` | Vercel-specific settings: framework declaration, function maxDuration for AI endpoint, API cache headers |
 | `.env.example` | Template for environment variables |
 | `.env.local` | Local environment variables (gitignored) |
 
@@ -136,7 +136,7 @@ Without `OPENAI_API_KEY`:
 
 ### Function Duration
 
-The AI processing route (`/api/tasks/[id]/process`) has `maxDuration = 30` (seconds). Vercel Hobby tier allows up to 10s by default; Pro tier allows up to 300s. If deploying on Hobby tier and OpenAI calls exceed 10s, upgrade to Pro or reduce the AI timeout in `src/lib/openai.ts`.
+The AI processing route (`/api/tasks/[id]/process`) has `maxDuration = 30` (seconds), set in both the route file (`export const maxDuration = 30`) and `vercel.json`. Vercel Hobby tier allows up to 10s by default; Pro tier allows up to 300s. If deploying on Hobby tier and OpenAI calls exceed 10s, upgrade to Pro or reduce the AI timeout in `src/lib/openai.ts`.
 
 ---
 

@@ -5,7 +5,7 @@
  * consistent, user-friendly JSON responses (never raw stack traces).
  */
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 // ──────────────────────────────────────────────
 // Constants
@@ -209,6 +209,45 @@ export function validateWaitlistSignup(body: unknown): ValidationResult {
 export async function isRateLimited(_identifier: string): Promise<boolean> {
   // TODO: Wire to Vercel KV + @upstash/ratelimit post-MVP
   return false;
+}
+
+// ──────────────────────────────────────────────
+// CORS support (for future API consumers)
+// ──────────────────────────────────────────────
+
+/** CORS headers for API responses. Expand origins post-MVP as needed. */
+const CORS_HEADERS: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Max-Age": "86400",
+};
+
+/**
+ * Handle CORS preflight (OPTIONS) requests.
+ * Returns null if this is not a preflight request.
+ */
+export function handleCorsPreflightRequest(
+  request: NextRequest
+): NextResponse | null {
+  if (request.method !== "OPTIONS") return null;
+  return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+}
+
+/**
+ * Apply CORS headers to any response.
+ * Usage: return withCors(NextResponse.json(data))
+ */
+export function withCors(response: NextResponse): NextResponse {
+  const newHeaders = new Headers(response.headers);
+  for (const [key, value] of Object.entries(CORS_HEADERS)) {
+    newHeaders.set(key, value);
+  }
+  return new NextResponse(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: newHeaders,
+  });
 }
 
 // ──────────────────────────────────────────────
