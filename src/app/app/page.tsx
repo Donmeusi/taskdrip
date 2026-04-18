@@ -136,6 +136,8 @@ export default function TaskDripApp() {
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
+  // selectedTask.id/.status are captured via stable deps; adding selectedTask would cause infinite re-polling
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, selectedTask?.id, selectedTask?.status, fetchTask, fetchTasks]);
 
   // ─── Initial load ────────────────────────────────

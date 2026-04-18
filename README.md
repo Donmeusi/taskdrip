@@ -57,6 +57,8 @@ See [TECH_DECISIONS.md](./TECH_DECISIONS.md) for detailed reasoning.
 src/
   app/              # Next.js App Router pages and API routes
     api/            # API route handlers
+      [...path]/    # Catch-all 404 for unknown API routes
+      config/       # App config endpoint (demo mode status)
       health/       # Health check endpoint
       tasks/        # Task CRUD + AI processing
         [id]/process/ # POST trigger AI processing
@@ -66,8 +68,12 @@ src/
     layout.tsx      # Root layout
     page.tsx        # Landing page (TaskDrip marketing)
     globals.css     # Global styles (Tailwind)
+    robots.ts       # robots.txt generation
+    sitemap.ts      # sitemap.xml generation
   lib/              # Shared libraries
     openai.ts       # OpenAI client + processTaskWithAI()
+    demo-mode.ts    # Demo mode mock AI responses
+    api.ts          # API helpers (CORS, errors, rate limiting)
   db/               # Database layer (Drizzle ORM + SQLite)
     schema.ts       # Table definitions (users, tasks)
     queries.ts      # CRUD operations
@@ -78,6 +84,8 @@ src/
     setup.ts        # Test environment setup
 drizzle/            # Generated SQL migrations
 docs/               # Documentation
+  DEPLOY.md         # Deployment guide (Vercel)
+  API.md            # API documentation
   openai-setup.md   # OpenAI API key setup + cost guide
 ```
 
